@@ -1,0 +1,64 @@
+module reroll_system (
+    input clk,
+    input rst,
+    input BTN,            
+    input [3:0] reroll_init,  
+
+    output reg [2:0] held_piece, // 0–4
+    output reg [3:0] reroll_count
+);
+
+//random
+    reg [3:0] lfsr;
+
+    wire [2:0] rand_piece;
+    assign rand_piece = lfsr % 5;   // 0–4
+
+    always @(posedge clk or posedge rst) begin
+        if (rst)
+            lfsr <= 4'b1011;
+        else
+            lfsr <= {lfsr[2:0], lfsr[3] ^ lfsr[2]};
+    end
+
+//reroll
+    always @(posedge clk or posedge rst) begin
+        if (rst) begin
+            held_piece <= 0;
+            reroll_count <= reroll_init;
+        end 
+        else if (BTN && reroll_count > 0) begin
+            held_piece <= rand_piece;
+            reroll_count <= reroll_count - 1;
+        end
+    end
+
+endmodule
+
+
+
+module btn_debouncer(input btn, clk, output reg BTN);
+
+    reg prev_btn,synced_btn;
+    reg [20:0] count = 0;
+    
+    always @ (posedge clk)begin
+    
+    synced_btn <= btn;
+    prev_btn <= synced_btn;
+    
+    if (synced_btn ==1) begin
+        BTN <=1;
+        count <= 0;
+    end
+    
+        if (prev_btn == 0 && synced_btn ==0 && BTN ==1) begin 
+            if (count==2_000_000) begin 
+                BTN <= 0;
+                count <= 0;
+            end
+            else count <= count + 1;
+                
+            end
+      
+    end
